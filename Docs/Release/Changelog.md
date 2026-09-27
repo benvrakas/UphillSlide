@@ -6,8 +6,8 @@ First release.
 
 - **Slide up steeper slopes.** Set the steepest uphill slope you can keep sliding up, from 0° to 89°. Vanilla stops
   you at about 7.4°.
-- **Uphill slowdown.** Set how quickly a slide loses speed while going uphill: 100% is vanilla, 0% doesn't slow you
-  down uphill at all. Flat ground and downhill are unchanged.
+- **Speed lost while sliding.** Set how quickly a slide loses speed on flat ground and uphill: 100% is vanilla, 0%
+  never slows down. Steep downhill slopes still speed you up as usual.
 - **Separate settings for each tier:** no Blade Runners, Blade Runners, and Mk.2 to Mk.5 Blade Runners from the
   optional [Mk+ Blade Runners](https://ficsit.app/mod/bbladerunners) mod (every fall damage variant counts as its
   tier).

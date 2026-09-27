@@ -41,11 +41,11 @@ the current speed toward `mSlideCurve(mSlideTime) x sprint speed`. Nothing else 
 Per player, on the server and on that player's own game:
 
 - `mMaxSlideAngle` = pi/2 + the tier's "steepest uphill slide" in radians.
-- `mSlopeCurve` = the vanilla curve, or a per-factor copy (`GetScaledSlopeCurve`). Keys below flat are copied as
-  they are. Above flat, the copy samples the vanilla curve times the tier's "uphill slowdown" factor at flat + 1
-  degree, at any vanilla keys beyond that, and at pi, so the scaling holds for every uphill angle. Between flat (vanilla
-  value) and flat + 1 degree it blends linearly, so tiny vertical jitter on level floors barely changes the rate.
-  At 0% the slide timer stops advancing uphill and the slide keeps its speed.
+- `mSlopeCurve` = the vanilla curve, or a per-factor copy (`GetScaledSlopeCurve`) that samples the vanilla curve
+  every half degree from 0 to pi as linear keys. Positive rates (the slide timer advancing, so the slide losing speed)
+  are multiplied by the tier's "speed lost while sliding" factor; negative rates (steep downhill, the timer running
+  backwards so the slide regains speed) are kept, so downhill behaves as vanilla. At 0% the timer never advances and
+  the slide keeps its speed until the player stops it.
 
 Both fields are private `UPROPERTY`s, reached through the `Accessor` access transformers in
 `Config/AccessTransformers.ini`.
