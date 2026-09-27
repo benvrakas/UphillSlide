@@ -16,13 +16,13 @@ public:
 
 	// Setting keys inside each tier's section.
 	static const FString UphillAngleKey;
-	static const FString UphillSpeedLossKey;
+	static const FString SpeedLossKey;
 
 	// Lowest and highest accepted values.
 	static constexpr float MinUphillAngle = 0.f;
 	static constexpr float MaxUphillAngle = 89.f;
-	static constexpr float MinUphillSpeedLoss = 0.f;
-	static constexpr float MaxUphillSpeedLoss = 1000.f;
+	static constexpr float MinSpeedLoss = 0.f;
+	static constexpr float MaxSpeedLoss = 1000.f;
 
 	// Returns the key of Tier's section.
 	static FString GetTierSectionKey(EUSTier Tier);

@@ -19,8 +19,8 @@ namespace
 	// Slope angle of flat ground: the angle between a level velocity and straight down.
 	constexpr float FlatSlopeAngle = UE_HALF_PI;
 
-	// How far above flat the uphill slowdown setting reaches full effect, in radians (1 degree).
-	constexpr float UphillBlendAngle = UE_PI / 180.f;
+	// Number of steps a scaled slope curve samples the vanilla one at, from straight down to straight up (half a degree each).
+	constexpr int32 SlopeCurveSamples = 360;
 
 	// Package path prefix of Mk+ Blade Runners' classes.
 	const TCHAR* MkPlusPathPrefix = TEXT("/bbladerunners/");
@@ -132,8 +132,8 @@ void AUSSlideSubsystem::RefreshSettingsFromConfig()
 	TierSettings = MoveTemp(NewSettings);
 	for (int32 Index = 0; Index < TierSettings.Num(); ++Index)
 	{
-		UE_LOG(LogUphillSlide, Log, TEXT("Settings: %s: uphill up to %.2f degrees, uphill slowdown %.0f%%"),
-			USTierName(static_cast<EUSTier>(Index)), TierSettings[Index].UphillAngleDegrees, TierSettings[Index].UphillSpeedLossPercent);
+		UE_LOG(LogUphillSlide, Log, TEXT("Settings: %s: uphill up to %.2f degrees, speed loss %.0f%%"),
+			USTierName(static_cast<EUSTier>(Index)), TierSettings[Index].UphillAngleDegrees, TierSettings[Index].SpeedLossPercent);
 	}
 }
 
@@ -201,20 +201,20 @@ void AUSSlideSubsystem::ApplyTo(AFGCharacterPlayer* Character)
 	const EUSTier Tier = GetTier(Character);
 	const FUSTierSettings& Settings = TierSettings[static_cast<int32>(Tier)];
 	const float MaxSlideAngle = FlatSlopeAngle + FMath::DegreesToRadians(Settings.UphillAngleDegrees);
-	const float SlowdownFactor = Settings.UphillSpeedLossPercent / 100.f;
+	const float SpeedLossFactor = Settings.SpeedLossPercent / 100.f;
 
 	UCurveFloat* VanillaCurve = State->VanillaSlopeCurve.Get();
 	UCurveFloat* SlopeCurve = VanillaCurve;
-	if (!FMath::IsNearlyEqual(SlowdownFactor, 1.f))
+	if (!FMath::IsNearlyEqual(SpeedLossFactor, 1.f))
 	{
 		if (VanillaCurve)
 		{
-			SlopeCurve = GetScaledSlopeCurve(VanillaCurve, SlowdownFactor);
+			SlopeCurve = GetScaledSlopeCurve(VanillaCurve, SpeedLossFactor);
 		}
 		else if (!bLoggedMissingCurve)
 		{
 			bLoggedMissingCurve = true;
-			UE_LOG(LogUphillSlide, Warning, TEXT("%s has no slope curve; uphill slowdown can't be changed"), *DescribePlayer(Character));
+			UE_LOG(LogUphillSlide, Warning, TEXT("%s has no slope curve; speed loss can't be changed"), *DescribePlayer(Character));
 		}
 	}
 
@@ -231,9 +231,9 @@ void AUSSlideSubsystem::ApplyTo(AFGCharacterPlayer* Character)
 	{
 		State->AppliedTier = Tier;
 		State->AppliedSettings = Settings;
-		UE_LOG(LogUphillSlide, Log, TEXT("%s (%s) now uses %s: uphill up to %.2f degrees (max slide angle %.4f rad), uphill slowdown %.0f%%"),
+		UE_LOG(LogUphillSlide, Log, TEXT("%s (%s) now uses %s: uphill up to %.2f degrees (max slide angle %.4f rad), speed loss %.0f%%"),
 			*DescribePlayer(Character), Character->HasAuthority() ? TEXT("server") : TEXT("own client"), USTierName(Tier),
-			Settings.UphillAngleDegrees, MaxSlideAngle, Settings.UphillSpeedLossPercent);
+			Settings.UphillAngleDegrees, MaxSlideAngle, Settings.SpeedLossPercent);
 	}
 }
 
@@ -250,34 +250,19 @@ UCurveFloat* AUSSlideSubsystem::GetScaledSlopeCurve(UCurveFloat* Vanilla, float 
 	FRichCurve& Target = Scaled->FloatCurve;
 	Target.Reset();
 
-	const float FullyScaledAngle = FlatSlopeAngle + UphillBlendAngle;
-	auto AddLinearKey = [&Target](float Time, float Value)
+	// Positive rates (the slide losing speed) are scaled; negative rates (steep downhill, gaining speed) stay vanilla.
+	for (int32 Sample = 0; Sample <= SlopeCurveSamples; ++Sample)
 	{
-		Target.SetKeyInterpMode(Target.AddKey(Time, Value), RCIM_Linear);
-	};
-
-	// Downhill and flat keep their vanilla keys; vanilla keys above flat are replaced by the samples below.
-	for (const FRichCurveKey& SourceKey : Source.GetConstRefOfKeys())
-	{
-		if (SourceKey.Time < FlatSlopeAngle - KINDA_SMALL_NUMBER)
-		{
-			Target.GetKey(Target.AddKey(SourceKey.Time, SourceKey.Value)) = SourceKey;
-		}
+		const float Angle = UE_PI * Sample / SlopeCurveSamples;
+		const float Rate = Source.Eval(Angle);
+		Target.SetKeyInterpMode(Target.AddKey(Angle, Rate > 0.f ? Rate * Factor : Rate), RCIM_Linear);
 	}
-	AddLinearKey(FlatSlopeAngle, Source.Eval(FlatSlopeAngle));
-	AddLinearKey(FullyScaledAngle, Source.Eval(FullyScaledAngle) * Factor);
-	for (const FRichCurveKey& SourceKey : Source.GetConstRefOfKeys())
-	{
-		if (SourceKey.Time > FullyScaledAngle + KINDA_SMALL_NUMBER && SourceKey.Time < UE_PI - KINDA_SMALL_NUMBER)
-		{
-			AddLinearKey(SourceKey.Time, Source.Eval(SourceKey.Time) * Factor);
-		}
-	}
-	AddLinearKey(UE_PI, Source.Eval(UE_PI) * Factor);
 
 	ScaledCurves.Add(Scaled);
 	ScaledCurveLookup.Add(Key, Scaled);
-	UE_LOG(LogUphillSlide, Log, TEXT("Built slope curve for uphill slowdown %.0f%% from %s: %s"), Factor * 100.f, *GetPathNameSafe(Vanilla), *DescribeKeys(Target));
+	auto RateAt = [&Target](float DegreesUphill) { return Target.Eval(FlatSlopeAngle + FMath::DegreesToRadians(DegreesUphill)); };
+	UE_LOG(LogUphillSlide, Log, TEXT("Built slope curve for speed loss %.0f%% from %s: slide time rate %.3f at 30 degrees down, %.3f at 10 down, %.3f flat, %.3f at 10 up, %.3f at 30 up"),
+		Factor * 100.f, *GetPathNameSafe(Vanilla), RateAt(-30.f), RateAt(-10.f), RateAt(0.f), RateAt(10.f), RateAt(30.f));
 	return Scaled;
 }
 

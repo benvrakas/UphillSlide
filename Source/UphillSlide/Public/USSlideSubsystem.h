@@ -48,7 +48,7 @@ private:
 	// Sets Character's max slide angle and slope curve from their tier's settings.
 	void ApplyTo(AFGCharacterPlayer* Character);
 
-	// Returns a copy of Vanilla whose uphill values are multiplied by Factor, built once per curve and factor.
+	// Returns a copy of Vanilla whose positive values (speed loss) are multiplied by Factor, built once per curve and factor.
 	UCurveFloat* GetScaledSlopeCurve(UCurveFloat* Vanilla, float Factor);
 
 	// Puts every tracked movement component back to its vanilla values.

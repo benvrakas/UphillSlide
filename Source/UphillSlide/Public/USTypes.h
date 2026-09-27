@@ -31,13 +31,13 @@ struct FUSTierSettings
 	UPROPERTY()
 	float UphillAngleDegrees = 0.f;
 
-	// How fast a slide runs out while going uphill, in percent of vanilla.
+	// How fast a slide loses speed, in percent of vanilla.
 	UPROPERTY()
-	float UphillSpeedLossPercent = 100.f;
+	float SpeedLossPercent = 100.f;
 
 	bool operator==(const FUSTierSettings& Other) const
 	{
-		return UphillAngleDegrees == Other.UphillAngleDegrees && UphillSpeedLossPercent == Other.UphillSpeedLossPercent;
+		return UphillAngleDegrees == Other.UphillAngleDegrees && SpeedLossPercent == Other.SpeedLossPercent;
 	}
 };
 
