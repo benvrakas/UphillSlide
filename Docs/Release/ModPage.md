@@ -8,7 +8,7 @@ Replace the [bracketed] placeholders before publishing.
 
 # SHORT DESCRIPTION
 
-Slide up steeper ramps. Set how steep you can slide, and how fast a slide slows down, for each Blade Runners tier.
+Slide up steeper ramps, with separate limits for each Blade Runners tier. Mk+ Blade Runners support is optional.
 
 # FULL DESCRIPTION
 
@@ -27,8 +27,11 @@ carry you further up your factory.
 - **Max uphill angle, per tier.** The steepest slope you can keep sliding up, from 0° to 89°.
 - **Speed lost while sliding, per tier.** 100% is vanilla, 50% keeps your speed twice as long, 0% never slows down,
   on flat ground or uphill. Steep downhill slopes still speed you up as usual.
-- **Works with [Mk+ Blade Runners](https://ficsit.app/mod/bbladerunners)** (optional). Mk.2, Mk.3, Mk.4 and Mk.5
-  each get their own settings, and their reduced and no fall damage versions count as the same tier.
+- **Keep your entry speed, per tier.** Turn it on and a slide keeps the speed you go into it with, for example from
+  bhopping, instead of being pulled down to the normal slide speed. With speed lost at 0%, you keep it all the way.
+- **Optional [Mk+ Blade Runners](https://ficsit.app/mod/bbladerunners) support.** Uphill Slide works on its own with
+  vanilla Blade Runners. If you also have Mk+ Blade Runners, Mk.2, Mk.3, Mk.4 and Mk.5 each get their own settings,
+  and their reduced and no fall damage versions count as the same tier.
 - **Multiplayer.** Everyone slides by the host's settings, so there's no rubber-banding on slopes.
 
 ### Default settings
@@ -42,7 +45,7 @@ carry you further up your factory.
 | Mk.4 Blade Runners | 35° | |
 | Mk.5 Blade Runners | 40° | |
 
-Speed lost while sliding starts at 100% (vanilla) for every tier.
+Speed lost while sliding starts at 100% (vanilla) and Keep your entry speed starts off, for every tier.
 
 Ramps on an 8 m foundation: 1 m is 7.1°, 2 m is 14.0°, 4 m is 26.6°. Set a tier a little above the ramp you want
 to slide up.

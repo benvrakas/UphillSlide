@@ -1,5 +1,6 @@
 #include "USModules.h"
 #include "USConfig.h"
+#include "USSlideMomentum.h"
 #include "USSlideSubsystem.h"
 
 UUSGameInstanceModule::UUSGameInstanceModule()
@@ -14,6 +15,7 @@ void UUSGameInstanceModule::DispatchLifecycleEvent(ELifecyclePhase Phase)
 	if (Phase == ELifecyclePhase::INITIALIZATION)
 	{
 		UUSConfig::UseSMLEditorClasses();
+		FUSSlideMomentum::InstallHook();
 	}
 	Super::DispatchLifecycleEvent(Phase);
 }

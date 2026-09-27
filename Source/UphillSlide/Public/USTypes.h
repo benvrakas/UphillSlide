@@ -35,9 +35,14 @@ struct FUSTierSettings
 	UPROPERTY()
 	float SpeedLossPercent = 100.f;
 
+	// Whether a slide keeps the speed the player entered it with instead of being pulled down to the slide speed.
+	UPROPERTY()
+	bool bKeepEntrySpeed = false;
+
 	bool operator==(const FUSTierSettings& Other) const
 	{
-		return UphillAngleDegrees == Other.UphillAngleDegrees && SpeedLossPercent == Other.SpeedLossPercent;
+		return UphillAngleDegrees == Other.UphillAngleDegrees && SpeedLossPercent == Other.SpeedLossPercent
+			&& bKeepEntrySpeed == Other.bKeepEntrySpeed;
 	}
 };
 

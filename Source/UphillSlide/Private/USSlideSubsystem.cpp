@@ -1,6 +1,7 @@
 #include "USSlideSubsystem.h"
 #include "UphillSlide.h"
 #include "USConfig.h"
+#include "USSlideMomentum.h"
 #include "Curves/CurveFloat.h"
 #include "EngineUtils.h"
 #include "Equipment/FGEquipment.h"
@@ -100,6 +101,7 @@ void AUSSlideSubsystem::Tick(float DeltaSeconds)
 				It.RemoveCurrent();
 			}
 		}
+		FUSSlideMomentum::Prune();
 	}
 
 	if (TierSettings.Num() != USTierCount)
@@ -132,8 +134,9 @@ void AUSSlideSubsystem::RefreshSettingsFromConfig()
 	TierSettings = MoveTemp(NewSettings);
 	for (int32 Index = 0; Index < TierSettings.Num(); ++Index)
 	{
-		UE_LOG(LogUphillSlide, Log, TEXT("Settings: %s: uphill up to %.2f degrees, speed loss %.0f%%"),
-			USTierName(static_cast<EUSTier>(Index)), TierSettings[Index].UphillAngleDegrees, TierSettings[Index].SpeedLossPercent);
+		UE_LOG(LogUphillSlide, Log, TEXT("Settings: %s: uphill up to %.2f degrees, speed loss %.0f%%, keep entry speed %s"),
+			USTierName(static_cast<EUSTier>(Index)), TierSettings[Index].UphillAngleDegrees, TierSettings[Index].SpeedLossPercent,
+			TierSettings[Index].bKeepEntrySpeed ? TEXT("on") : TEXT("off"));
 	}
 }
 
@@ -226,14 +229,15 @@ void AUSSlideSubsystem::ApplyTo(AFGCharacterPlayer* Character)
 	{
 		Movement->SetmSlopeCurve(SlopeCurve);
 	}
+	FUSSlideMomentum::SetEnabled(Movement, Settings.bKeepEntrySpeed);
 
 	if (State->AppliedTier != Tier || !(State->AppliedSettings == Settings))
 	{
 		State->AppliedTier = Tier;
 		State->AppliedSettings = Settings;
-		UE_LOG(LogUphillSlide, Log, TEXT("%s (%s) now uses %s: uphill up to %.2f degrees (max slide angle %.4f rad), speed loss %.0f%%"),
+		UE_LOG(LogUphillSlide, Log, TEXT("%s (%s) now uses %s: uphill up to %.2f degrees (max slide angle %.4f rad), speed loss %.0f%%, keep entry speed %s"),
 			*DescribePlayer(Character), Character->HasAuthority() ? TEXT("server") : TEXT("own client"), USTierName(Tier),
-			Settings.UphillAngleDegrees, MaxSlideAngle, Settings.SpeedLossPercent);
+			Settings.UphillAngleDegrees, MaxSlideAngle, Settings.SpeedLossPercent, Settings.bKeepEntrySpeed ? TEXT("on") : TEXT("off"));
 	}
 }
 
@@ -279,5 +283,6 @@ void AUSSlideSubsystem::RestoreAll()
 		}
 	}
 	Tracked.Reset();
+	FUSSlideMomentum::Reset();
 	UE_LOG(LogUphillSlide, Log, TEXT("Restored vanilla slide values on %d players"), Restored);
 }

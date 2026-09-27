@@ -50,6 +50,27 @@ Per player, on the server and on that player's own game:
 Both fields are private `UPROPERTY`s, reached through the `Accessor` access transformers in
 `Config/AccessTransformers.ini`.
 
+## Keep your entry speed
+
+While sliding, `GetMaxSpeed` returns `lerp(current speed, slide target, a)` with `a = min(<character float at
+0x85C>, 1)`, and the slide target is `mSlideCurve(mSlideTime) x sprint speed`. `CalcVelocity` first runs the engine's
+walking velocity (which brakes anything over `GetMaxSpeed` back down), then, once `mSlideTime > 0`, sets the speed to
+exactly `GetMaxSpeed()`. So a player who lands a bhop faster than the slide target is pulled down to it, even with the
+slide timer frozen at 0%.
+
+`FUSSlideMomentum` hooks `GetMaxSpeed` (SML detours the function body, so `CalcVelocity`'s direct call is caught
+too). For a movement component whose tier has the setting on, it records the horizontal speed and the slide curve's
+value on the first call of each slide, then returns
+
+```
+max(vanilla, min(current speed, entry speed x slideCurve(now) / slideCurve(at entry)))
+```
+
+The entry speed fades by the same curve as the normal slide speed (so "speed lost" still applies), the player is
+never sped up past their current speed, and a slide slower than vanilla's is left alone. `mSlideTime` isn't a
+`UPROPERTY`, so the class is a `Friend` of `UFGCharacterMovementComponent` (access transformer). The hook runs on
+the server and on each player's own game, like the other settings, with the replicated `bKeepEntrySpeed`.
+
 ## Why polling instead of hooks
 
 `AUSSlideSubsystem` ticks every 0.1 s and sets the values only when they differ. The alternative, hooking

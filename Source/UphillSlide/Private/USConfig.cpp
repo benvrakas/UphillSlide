@@ -1,6 +1,7 @@
 #include "USConfig.h"
 #include "UphillSlide.h"
 #include "Configuration/ConfigManager.h"
+#include "Configuration/Properties/ConfigPropertyBool.h"
 #include "Configuration/Properties/ConfigPropertyFloat.h"
 #include "Configuration/Properties/ConfigPropertySection.h"
 #include "Configuration/Properties/WidgetExtension/CP_Float.h"
@@ -12,6 +13,7 @@
 
 const FString UUSConfig::UphillAngleKey = TEXT("UphillAngle");
 const FString UUSConfig::SpeedLossKey = TEXT("SpeedLoss");
+const FString UUSConfig::KeepEntrySpeedKey = TEXT("KeepEntrySpeed");
 
 namespace
 {
@@ -37,10 +39,10 @@ namespace
 		return {
 			{ 7.4f, LOCTEXT("TierNone", "No Blade Runners"), LOCTEXT("TierNoneHint", "vanilla limit 7.4°"), LOCTEXT("TierNoneTip", "When you aren't wearing Blade Runners.") },
 			{ 15.f, LOCTEXT("TierMk1", "Blade Runners"), LOCTEXT("TierMk1Hint", "also other mods' Blade Runners"), LOCTEXT("TierMk1Tip", "Vanilla Blade Runners. Blade Runners added by other mods (not Mk+ Blade Runners) use these settings too.") },
-			{ 20.f, LOCTEXT("TierMk2", "Mk.2 Blade Runners"), LOCTEXT("TierMkPlusHint", "needs Mk+ Blade Runners"), LOCTEXT("TierMk2Tip", "Needs the Mk+ Blade Runners mod. Covers every Mk.2 variant.") },
-			{ 27.f, LOCTEXT("TierMk3", "Mk.3 Blade Runners"), LOCTEXT("TierMkPlusHint", "needs Mk+ Blade Runners"), LOCTEXT("TierMk3Tip", "Needs the Mk+ Blade Runners mod. Covers every Mk.3 variant.") },
-			{ 35.f, LOCTEXT("TierMk4", "Mk.4 Blade Runners"), LOCTEXT("TierMkPlusHint", "needs Mk+ Blade Runners"), LOCTEXT("TierMk4Tip", "Needs the Mk+ Blade Runners mod.") },
-			{ 40.f, LOCTEXT("TierMk5", "Mk.5 Blade Runners"), LOCTEXT("TierMkPlusHint", "needs Mk+ Blade Runners"), LOCTEXT("TierMk5Tip", "Needs the Mk+ Blade Runners mod.") },
+			{ 20.f, LOCTEXT("TierMk2", "Mk.2 Blade Runners"), LOCTEXT("TierMkPlusHint", "only with Mk+ Blade Runners"), LOCTEXT("TierMk2Tip", "Only used if you have the optional Mk+ Blade Runners mod. Covers every Mk.2 variant.") },
+			{ 27.f, LOCTEXT("TierMk3", "Mk.3 Blade Runners"), LOCTEXT("TierMkPlusHint", "only with Mk+ Blade Runners"), LOCTEXT("TierMk3Tip", "Only used if you have the optional Mk+ Blade Runners mod. Covers every Mk.3 variant.") },
+			{ 35.f, LOCTEXT("TierMk4", "Mk.4 Blade Runners"), LOCTEXT("TierMkPlusHint", "only with Mk+ Blade Runners"), LOCTEXT("TierMk4Tip", "Only used if you have the optional Mk+ Blade Runners mod.") },
+			{ 40.f, LOCTEXT("TierMk5", "Mk.5 Blade Runners"), LOCTEXT("TierMkPlusHint", "only with Mk+ Blade Runners"), LOCTEXT("TierMk5Tip", "Only used if you have the optional Mk+ Blade Runners mod.") },
 		};
 	}
 
@@ -65,6 +67,13 @@ namespace
 		const UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 		const UConfigManager* Manager = GameInstance ? GameInstance->GetSubsystem<UConfigManager>() : nullptr;
 		return Manager ? Manager->GetConfigurationRootSection(MakeConfigId()) : nullptr;
+	}
+
+	// Returns the boolean setting Key inside Section, or null.
+	const UConfigPropertyBool* FindBool(const UConfigPropertySection* Section, const FString& Key)
+	{
+		const TObjectPtr<UConfigProperty>* Found = Section ? Section->SectionProperties.Find(Key) : nullptr;
+		return Found ? Cast<UConfigPropertyBool>(Found->Get()) : nullptr;
 	}
 
 	// Returns the float setting Key inside Section, or null.
@@ -120,6 +129,13 @@ UUSConfig::UUSConfig()
 		SpeedLoss->DefaultValue = 100.f;
 		SpeedLoss->Value = 100.f;
 		Section->SectionProperties.Add(SpeedLossKey, SpeedLoss);
+
+		UConfigPropertyBool* KeepEntrySpeed = CreateDefaultSubobject<UConfigPropertyBool>(*(SectionKey + TEXT("KeepEntrySpeed")));
+		KeepEntrySpeed->DisplayName = LOCTEXT("KeepEntrySpeed", "Keep your entry speed");
+		KeepEntrySpeed->Tooltip = LOCTEXT("KeepEntrySpeedTip", "On: a slide keeps the speed you go into it with, for example from bhopping, instead of being pulled down to the normal slide speed. That speed then fades at the Speed lost while sliding rate, so at 0% you keep it. Off: vanilla. In multiplayer, the host's settings apply to everyone.");
+		KeepEntrySpeed->DefaultValue = false;
+		KeepEntrySpeed->Value = false;
+		Section->SectionProperties.Add(KeepEntrySpeedKey, KeepEntrySpeed);
 
 		RootSection->SectionProperties.Add(SectionKey, Section);
 	}
@@ -253,15 +269,17 @@ bool UUSConfig::ReadTierSettings(const UObject* WorldContext, TArray<FUSTierSett
 		const UConfigPropertySection* Section = SectionProperty ? Cast<UConfigPropertySection>(SectionProperty->Get()) : nullptr;
 		const UConfigPropertyFloat* UphillAngle = FindFloat(Section, UphillAngleKey);
 		const UConfigPropertyFloat* SpeedLoss = FindFloat(Section, SpeedLossKey);
-		if (!UphillAngle || !SpeedLoss)
+		const UConfigPropertyBool* KeepEntrySpeed = FindBool(Section, KeepEntrySpeedKey);
+		if (!UphillAngle || !SpeedLoss || !KeepEntrySpeed)
 		{
-			UE_LOG(LogUphillSlide, Warning, TEXT("Config: settings for %s missing (section %d, angle %d, speed loss %d); using defaults"),
-				USTierName(Tier), Section != nullptr, UphillAngle != nullptr, SpeedLoss != nullptr);
+			UE_LOG(LogUphillSlide, Warning, TEXT("Config: settings for %s missing (section %d, angle %d, speed loss %d, keep entry speed %d); using defaults"),
+				USTierName(Tier), Section != nullptr, UphillAngle != nullptr, SpeedLoss != nullptr, KeepEntrySpeed != nullptr);
 		}
 
 		FUSTierSettings& Settings = OutSettings[Index];
 		Settings.UphillAngleDegrees = FMath::Clamp(UphillAngle ? UphillAngle->Value : Defaults[Index].UphillAngle, MinUphillAngle, MaxUphillAngle);
 		Settings.SpeedLossPercent = FMath::Clamp(SpeedLoss ? SpeedLoss->Value : 100.f, MinSpeedLoss, MaxSpeedLoss);
+		Settings.bKeepEntrySpeed = KeepEntrySpeed ? KeepEntrySpeed->Value : false;
 	}
 	return true;
 }

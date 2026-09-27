@@ -10,6 +10,8 @@ Open **Mods → Uphill Slide** (in game or in Satisfactory Mod Manager). Each ti
 - **Max uphill angle (degrees)**: the steepest slope you can keep sliding up (0 to 89).
 - **Speed lost while sliding (%)**: how quickly a slide slows down, on flat ground and uphill. 100 is
   vanilla, 50 lasts twice as long, 0 never slows down. Steep downhill slopes still speed you up as usual.
+- **Keep your entry speed** (off by default): a slide keeps the speed you go into it with, for example from
+  bhopping, instead of being pulled down to the normal slide speed. That speed then fades at the rate above.
 
 | Tier | Default angle |
 |---|---|
@@ -24,7 +26,7 @@ Ramps on an 8 m foundation: 1 m is 7.1°, 2 m is 14.0°, 4 m is 26.6°.
 
 ## Mk+ Blade Runners (optional)
 
-With [Mk+ Blade Runners](https://ficsit.app/mod/bbladerunners) installed, each Mk.2 to Mk.5 tier uses its own
+Uphill Slide doesn't need any other mod. With [Mk+ Blade Runners](https://ficsit.app/mod/bbladerunners) installed, each Mk.2 to Mk.5 tier uses its own
 settings, and the reduced and no fall damage versions count as their tier. Without it, those settings do nothing.
 Blade Runners from other mods use the Blade Runners settings.
 

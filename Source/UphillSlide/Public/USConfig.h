@@ -17,6 +17,7 @@ public:
 	// Setting keys inside each tier's section.
 	static const FString UphillAngleKey;
 	static const FString SpeedLossKey;
+	static const FString KeepEntrySpeedKey;
 
 	// Lowest and highest accepted values.
 	static constexpr float MinUphillAngle = 0.f;
